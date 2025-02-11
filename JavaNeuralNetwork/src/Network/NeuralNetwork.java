@@ -1,11 +1,24 @@
 package Network;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class NeuralNetwork {
     private List<Layer> layers = new ArrayList<>();
     private double learningRate = 0.1;
+
+    public NeuralNetwork() {
+    }
+
+    public NeuralNetwork(String path) {
+        load(path); // Charge le réseau à partir du fichier
+    }
 
     public void addLayer(int neuronCount, ActivationFunction activation) {
         int inputSize = (layers.isEmpty()) ? neuronCount : layers.get(layers.size() - 1).neuronCount;
@@ -67,6 +80,44 @@ public class NeuralNetwork {
                 }
                 gradients = newGradients;
             }
+        }
+    }
+
+    public void save(String path) {
+        for(int i = 0; i < layers.size(); i++) {
+            // Extraire le dossier du chemin (supprime tout après le dernier '/')
+            File directory = new File(path).getParentFile();
+
+            // Vérifier si le dossier existe, sinon le créer
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs(); // Crée le dossier et ses parents si nécessaire
+            }
+
+            Layer layer = layers.get(i);
+            String layerPath = path + "_layer" + i + ".txt";
+            try (PrintWriter writer = new PrintWriter(layerPath)) {
+                writer.println(layer.saveToString());
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void load(String path) {
+        layers.clear();
+        int i = 0;
+        while (true) {
+            String layerPath = path + "_layer" + i + ".txt";
+            try {
+                String content = new String(Files.readAllBytes(Paths.get(layerPath)));
+                Layer layer = Layer.loadFromString(content);
+                layers.add(layer);
+            } catch (FileNotFoundException e) {
+                break;
+            } catch (IOException e) {
+                break;
+            }
+            i++;
         }
     }
 }
