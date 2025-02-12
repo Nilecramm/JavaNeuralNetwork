@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class NeuralNetwork {
@@ -33,50 +34,71 @@ public class NeuralNetwork {
         return outputs;
     }
 
-    public void train(double[][] trainingInputs, double[][] trainingOutputs, int epochs) {
+    public void train(double[][] trainingInputs, double[][] trainingOutputs, int epochs, boolean info) {
         for (int epoch = 0; epoch < epochs; epoch++) {
             double totalError = 0;
             for (int i = 0; i < trainingInputs.length; i++) {
                 double[] outputs = forward(trainingInputs[i]);
-                backward(trainingInputs[i], outputs, trainingOutputs[i]);
 
+                // Calculate cross-entropy loss
                 for (int j = 0; j < outputs.length; j++) {
-                    totalError += Math.pow(trainingOutputs[i][j] - outputs[j], 2);
+                    totalError -= trainingOutputs[i][j] * Math.log(outputs[j] + 1e-15);
                 }
+
+                backward(trainingInputs[i], outputs, trainingOutputs[i]);
             }
-            if (epoch % 1000 == 0) {
-                System.out.println("Epoch " + epoch + " - Error: " + totalError);
+
+            if (info || epoch % 1000 == 0) {
+                System.out.println("Epoch " + epoch + " - Loss: " + (totalError / trainingInputs.length));
             }
         }
     }
 
+    public void setLearningRate(double rate) {
+        this.learningRate = Math.max(rate, 1e-6); // Prevent zero or negative values
+    }
+
+    public double getLearningRate() {
+        return this.learningRate;
+    }
+
     private void backward(double[] inputs, double[] outputs, double[] expectedOutputs) {
-        double[] errors = new double[outputs.length];
         double[] gradients = new double[outputs.length];
 
+        // Compute loss gradient
         for (int i = 0; i < outputs.length; i++) {
-            errors[i] = expectedOutputs[i] - outputs[i];
-            gradients[i] = errors[i] * layers.get(layers.size() - 1).activation.derivative(outputs[i]);
+            gradients[i] = outputs[i] - expectedOutputs[i];
         }
 
+        // Gradient Clipping to prevent explosions
+        double maxGradient = Arrays.stream(gradients).map(Math::abs).max().orElse(1.0);
+        double clipThreshold = 5.0; // Set a reasonable threshold
+
+        if (maxGradient > clipThreshold) {
+            for (int i = 0; i < gradients.length; i++) {
+                gradients[i] = (gradients[i] / maxGradient) * clipThreshold;
+            }
+        }
+
+        // Backpropagation
         for (int l = layers.size() - 1; l >= 0; l--) {
             Layer layer = layers.get(l);
             double[] prevOutputs = (l == 0) ? inputs : layers.get(l - 1).outputs;
 
             for (int j = 0; j < layer.neuronCount; j++) {
                 for (int i = 0; i < layer.inputSize; i++) {
-                    layer.weights[i][j] += learningRate * gradients[j] * prevOutputs[i];
+                    layer.weights[i][j] -= learningRate * gradients[j] * prevOutputs[i];
                 }
-                layer.biases[j] += learningRate * gradients[j];
+                layer.biases[j] -= learningRate * gradients[j];
             }
 
+            // Backpropagate gradients
             if (l > 0) {
                 double[] newGradients = new double[layer.inputSize];
                 for (int i = 0; i < layer.inputSize; i++) {
                     for (int j = 0; j < layer.neuronCount; j++) {
                         newGradients[i] += layer.weights[i][j] * gradients[j];
                     }
-                    newGradients[i] *= layers.get(l - 1).activation.derivative(prevOutputs[i]);
                 }
                 gradients = newGradients;
             }

@@ -1,0 +1,6 @@
+2 2
+ReLUActivation
+NaN NaN 
+NaN NaN 
+NaN NaN 
+

@@ -24,13 +24,17 @@ public class Layer {
 
     private void initWeights() {
         Random rand = new Random();
+        // He initialization for ReLU
+        double scale = Math.sqrt(2.0 / inputSize);
+
         for (int i = 0; i < inputSize; i++) {
             for (int j = 0; j < neuronCount; j++) {
-                weights[i][j] = rand.nextDouble() - 0.5;
+                weights[i][j] = rand.nextGaussian() * scale * 0.5; // Reduce scaling
             }
         }
+
         for (int j = 0; j < neuronCount; j++) {
-            biases[j] = rand.nextDouble() - 0.5;
+            biases[j] = 0; // Start with zero bias
         }
     }
 
@@ -114,6 +118,7 @@ public class Layer {
             case "ReLUActivation": return new ReLUActivation();
             case "SigmoidActivation": return new SigmoidActivation();
             case "SoftmaxActivation": return new SoftmaxActivation();
+            case "LeakyReLUActivation": return new LeakyReLUActivation();
             default: throw new IllegalArgumentException("Unknown activation function: " + name);
         }
     }

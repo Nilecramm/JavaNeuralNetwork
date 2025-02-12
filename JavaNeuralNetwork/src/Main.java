@@ -18,7 +18,7 @@ public class Main {
                 {0}, {1}, {1}, {0}
         };
 
-        nn.train(trainingInputs, trainingOutputs, 100000);
+        nn.train(trainingInputs, trainingOutputs, 100000, false);
 
         nn.save("saves/xorfiles/xor");
         System.out.println("Prédictions :");
